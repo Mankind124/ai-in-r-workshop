@@ -74,8 +74,6 @@ if (identical(Sys.getenv("OPENAI_API_KEY"), "")) {
 # Think of it like opening a chat session that remembers
 # everything you've discussed.
 
-cat("\n===== Creating a chat object =====\n")
-
 
 # Create chat object with a system prompt
 
@@ -84,12 +82,6 @@ chat <- chat_openai(
                    Explain concepts simply and use short, practical examples.",
   model = "gpt-4o-mini"  # Fast and cost-effective model
 )
-
-# MODEL OPTIONS:
-#   - "gpt-4o-mini"  : Fast, cheap, great for most tasks (RECOMMENDED)
-#   - "gpt-4o"       : More capable, better reasoning
-#   - "gpt-4-turbo"  : Balance of speed and capability
-#   - "o1"           : Most capable, for complex problems
 
 
 response_1 <- chat$chat(
@@ -125,13 +117,6 @@ Keep it simple and beginner-friendly.
 ############################################################
 # By default, ellmer streams responses to the console.
 # Sometimes you want to capture output WITHOUT displaying it.
-#
-# USE CASES FOR SILENT MODE:
-#   - Building automated workflows
-#   - Using in functions
-#   - Batch processing multiple queries
-#   - Production scripts
-#   - When you want to control when/how output is displayed
 
 
 # Create a NEW chat object with echo = "none"
@@ -147,7 +132,6 @@ quiet_answer <- chat_quiet$chat(
 )
 
 # But we can print it ourselves when we're ready
-cat("--- Answer captured silently, now displaying: ---\n")
 print(quiet_answer)
 
 # ECHO MODE OPTIONS:
@@ -163,8 +147,6 @@ print(quiet_answer)
 # LLMs don't automatically "see" your R objects or datasets.
 # You must explicitly provide context by including data information
 # in your prompt.
-#
-# STRATEGY: Use summary(), str(), or head() output
 
 # Capture dataset summary as text
 summary_text <- capture.output(summary(iris))
@@ -305,143 +287,3 @@ Review this code for potential bugs and suggest improvements.
 Focus on edge cases and error handling.
 [paste your code here]
 "
-
-############################################################
-# MANAGING CONVERSATION HISTORY
-
-
-# View current conversation turns
-current_history <- chat$get_turns()
-print(current_history)
-
-# Clear history when switching to a new topic
-# This is important because:
-#   - Saves on API costs (fewer tokens sent)
-#   - Prevents confusion from unrelated context
-#   - Starts fresh for new tasks
-
-chat$set_turns(list())
-
-# Verify it's cleared
-cat("Conversation now has", length(chat$get_turns()), "turns\n")
-
-############################################################
-# ERROR HANDLING FOR PRODUCTION USE
-
-# When using ellmer in production code, wrap calls in tryCatch
-safe_chat <- function(chat_obj, prompt, max_retries = 3) {
-  for (attempt in 1:max_retries) {
-    result <- tryCatch({
-      chat_obj$chat(prompt)
-    }, error = function(e) {
-      if (grepl("rate limit", e$message, ignore.case = TRUE)) {
-        # Handle rate limiting with exponential backoff
-        wait_time <- 2^attempt
-        message("Rate limited. Waiting ", wait_time, " seconds...")
-        Sys.sleep(wait_time)
-        NULL
-      } else {
-        # Log error and return NULL
-        message("Error: ", e$message)
-        NULL
-      }
-    })
-    
-    if (!is.null(result)) return(result)
-  }
-  
-  stop("Failed after ", max_retries, " attempts")
-}
-
-# Usage:
-safe_response <- safe_chat(chat, "What is dplyr?")
-
-############################################################
-# COMPARING DIFFERENT PROVIDERS
-############################################################
-
-# You can create chat objects for different providers:
-
-# OpenAI (GPT models)
-# chat_gpt <- chat_openai(
-#   system_prompt = "You are a helpful R assistant.",
-#   model = "gpt-4o-mini"
-# )
-
-# Anthropic (Claude models) - requires ANTHROPIC_API_KEY
-# chat_claude <- chat_claude(
-#   system_prompt = "You are a helpful R assistant.",
-#   model = "claude-3-5-sonnet-20241022"
-# )
-
-# Google (Gemini models) - requires GOOGLE_API_KEY
-# chat_gemini <- chat_gemini(
-#   system_prompt = "You are a helpful R assistant.",
-#   model = "gemini-1.5-flash"
-# )
-
-# Local models (Ollama) - no API key needed, but requires Ollama running
-# chat_local <- chat_ollama(
-#   system_prompt = "You are a helpful R assistant.",
-#   model = "llama3"
-# )
-
-# All chat objects work the same way regardless of provider!
-
-############################################################
-# COMPLETE WORKING EXAMPLE
-############################################################
-
-# This example shows a typical workflow combining everything:
-
-workflow_demo <- function() {
-  # 1. Create specialized chat object
-  analyst <- chat_openai(
-    system_prompt = "You are a data analyst. Provide practical,
-                     code-based solutions using tidyverse when possible.",
-    model = "gpt-4o-mini",
-    echo = "none"  # Silent mode for clean workflow
-  )
-  
-  # 2. Get data context
-  data_info <- create_data_context(iris, "iris")
-  
-  # 3. Ask for analysis suggestions
-  suggestions <- analyst$chat(paste0(
-    data_info,
-    "\n\nSuggest 3 interesting analyses for this dataset.",
-    "Be specific and actionable."
-  ))
-  
-  cat("Analysis Suggestions:\n")
-  cat(suggestions, "\n\n")
-  
-  # 4. Request specific code
-  code <- analyst$chat(
-    "Write ggplot2 code to create a scatter plot of Sepal.Length 
-     vs Sepal.Width, colored by Species, with a smooth trend line."
-  )
-  
-  cat("Generated Code:\n")
-  cat(code, "\n\n")
-  
-  # 5. Ask for interpretation help
-  interpretation <- analyst$chat(
-    "Based on the iris dataset, what relationship would we expect
-     to see between Sepal.Length and Sepal.Width? Explain in 2 sentences."
-  )
-  
-  cat("Interpretation:\n")
-  cat(interpretation, "\n")
-  
-  return(list(
-    suggestions = suggestions,
-    code = code,
-    interpretation = interpretation
-  ))
-}
-
-# Uncomment to run the complete workflow:
-results <- workflow_demo()
-
-############################################################

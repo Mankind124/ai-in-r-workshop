@@ -23,7 +23,6 @@ stackoverflow
 #library(gander)
 #search()
 #ls("package:gander")
-
 # Delete glue locally from win-library R folder and re-install 
 #install.packages("glue")
 #packageVersion("glue")

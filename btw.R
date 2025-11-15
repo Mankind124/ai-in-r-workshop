@@ -1,16 +1,19 @@
 ############################################################
-# context_tools_btw_mcptools.R
+#btw:Sends R objects (like data frames) as context to LLMs 
+# so they can analyze or summarize them.
+
 # ---------------------------------------------------------
 # Goal:
 #   Show practical examples of:
 #     - btw: sending REAL R objects (data, models) to an LLM
-#     - mcptools: sending PROJECT CONTEXT (files, functions)
 #   using ellmer as the LLM interface.
 
 
 #############################
 # 0. SETUP
 #############################
+
+args(vitals::detect_match)
 
 
 # install.packages("ellmer")
